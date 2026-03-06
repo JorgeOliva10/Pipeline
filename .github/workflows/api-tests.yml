@@ -20,7 +20,9 @@ jobs:
       - name: Instalar Bruno CLI
         run: npm install -g @usebruno/cli
 
-      - name: Ejecutar colección de tests
-        run: bru run ./mcp_testing/collections
+      - name: Ejecutar colección FechaHora
+        run: |
+          cd mcp_testing/collections/FechaHora
+          bru run .
 
    
