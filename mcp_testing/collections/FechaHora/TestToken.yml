@@ -1,0 +1,74 @@
+info:
+  name: TestToken
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: http://localhost:8000/mcp
+  headers:
+    - name: Accept
+      value: application/json, text/event-stream
+    - name: Content-Type
+      value: application/json
+    - name: mcp-session-id
+      value: ff36c5867c6c41c189217d33ca08b146
+    - name: Authorization
+      value: Bearer test-token-12345
+      disabled: true
+  body:
+    type: json
+    data: |+
+      {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+          "name": "get_time_info",
+          "args": {
+            "timezone": "Europe/Madrid",
+            "token": "wrong-token"
+          }
+        },
+        "id": 2
+      }
+
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        function getJsonFromSSE() {
+          const raw = res.getBody();
+
+          if (!raw) {
+            throw new Error("Empty response body");
+          }
+
+          // Extraer JSON después de "data: " (sin flag /s)
+          const match = raw.match(/data:\s*(\{[\s\S]*\})/);
+
+          if (!match) {
+            throw new Error("No JSON found inside SSE response");
+          }
+
+          return JSON.parse(match[1]);
+        }
+
+
+        test("Returns error when API token is missing", function () {
+          const body = getJsonFromSSE();
+          const data = body.result.structuredContent;
+
+          expect(data.error).to.equal("Invalid or missing API token");
+          expect(data.iso).to.equal("");
+          expect(data.unix_timestamp).to.equal(0);
+          expect(data.timezone).to.equal("");
+          expect(data.day_of_week).to.equal("");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

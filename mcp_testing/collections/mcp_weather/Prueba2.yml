@@ -1,0 +1,49 @@
+info:
+  name: Prueba2
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: http://127.0.0.1:3001/mcp/web_search
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "jsonrpc": "2.0",
+        "method": "tools/list",
+        "id": 1
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Status code is 200", function () {
+          expect(res.getStatus()).to.equal(200);
+        });
+
+        test("JSON-RPC version is 2.0", function () {
+          const body = res.getBody();
+          expect(body.jsonrpc).to.equal("2.0");
+        });
+
+        test("Response has result", function () {
+          const body = res.getBody();
+          expect(body.result).to.not.be.undefined;
+        });
+
+        test("Tools array exists", function () {
+          const body = res.getBody();
+          expect(body.result.tools).to.be.an("array");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

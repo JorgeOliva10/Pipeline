@@ -1,0 +1,105 @@
+info:
+  name: FechaHora
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:8000/mcp
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Accept
+      value: application/json, text/event-stream
+    - name: mcp-session-id
+      value: af022bf71abf401fb021f64432aba2cc
+  body:
+    type: json
+    data: |-
+      {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+          "name": "get_time_info",
+          "args": {
+            "timezone": "Europe/Madrid"
+          }
+        },
+        "id": 1
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        console.log("Status:", res.getStatus());
+        console.log("Headers:", res.getHeaders());
+        console.log("Body raw:", res.getBody());
+    - type: tests
+      code: |-
+        function getJsonFromSSE() {
+          const raw = res.getBody();
+
+          if (!raw) {
+            throw new Error("Empty response body");
+          }
+
+          // Extraer JSON después de "data: "
+          const match = raw.match(/data:\s*(\{[\s\S]*\})/);
+
+          if (!match) {
+            throw new Error("No JSON found inside SSE response");
+          }
+
+          return JSON.parse(match[1]);
+        }
+        test("Valid JSON-RPC structure", function () {
+          const body = getJsonFromSSE();
+
+          expect(body.jsonrpc).to.equal("2.0");
+          expect(body).to.have.property("id");
+          expect(body).to.have.property("result");
+        });
+        test("TimeInfo structure is correct", function () {
+          const body = getJsonFromSSE();
+          const data = body.result.structuredContent;
+
+          expect(data).to.have.property("iso");
+          expect(data).to.have.property("unix_timestamp");
+          expect(data).to.have.property("timezone");
+          expect(data).to.have.property("day_of_week");
+        });
+
+        test("ISO date is valid", function () {
+          const body = getJsonFromSSE();
+          const iso = body.result.structuredContent.iso;
+          const date = new Date(iso);
+
+          expect(date.toString()).to.not.equal("Invalid Date");
+        });
+        test("Day of week matches ISO date", function () {
+          const body = getJsonFromSSE();
+          const result = body.result.structuredContent;
+
+          const date = new Date(result.iso);
+          const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+          const calculatedDay = days[date.getDay()];
+
+          expect(result.day_of_week).to.equal(calculatedDay);
+        });
+        test("Unix timestamp matches ISO", function () {
+          const body = getJsonFromSSE();
+          const result = body.result.structuredContent;
+
+          const isoDate = new Date(result.iso);
+          const unix = Math.floor(isoDate.getTime() / 1000);
+
+          expect(result.unix_timestamp).to.be.closeTo(unix, 2);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

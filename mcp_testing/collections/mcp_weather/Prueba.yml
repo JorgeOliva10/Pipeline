@@ -1,0 +1,81 @@
+info:
+  name: Prueba
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://127.0.0.1:3001/mcp/web_search
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+          "name": "web_search",
+          "arguments": {
+            "query": "OpenAI",
+            "engine": "duckduckgo",
+            "max_results": 5
+          }
+        },
+        "id": 3
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Call returns content", function () {
+          const body = res.getBody();
+          expect(body.result.content).to.be.an("array");
+        });
+        test("Response time under 5 seconds", function () {
+          expect(res.getResponseTime()).to.be.below(5000);
+        });
+
+        test("isError is boolean", function () {
+          const body = res.getBody();
+          expect(body.result.isError).to.be.a("boolean");
+        });
+        test("Valid JSON-RPC 2.0 structure", function () {
+          const body = res.getBody();
+
+          expect(body).to.have.property("jsonrpc");
+          expect(body.jsonrpc).to.equal("2.0");
+
+          expect(body).to.have.property("id");
+
+          // Debe tener result o error, pero no ambos
+          const hasResult = body.hasOwnProperty("result");
+          const hasError = body.hasOwnProperty("error");
+
+          expect(hasResult || hasError).to.equal(true);
+          expect(!(hasResult && hasError)).to.equal(true);
+        });
+        test("Search returned results", function () {
+          const body = res.getBody();
+          const content = body.result.content;
+
+          expect(content).to.be.an("array");
+          expect(content.length).to.be.above(0);
+
+          const text = content[0].text;
+          expect(text).to.include("Search Results");
+        });
+
+        test("No protocol-level error", function () {
+          const body = res.getBody();
+          expect(body.error).to.be.undefined;
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

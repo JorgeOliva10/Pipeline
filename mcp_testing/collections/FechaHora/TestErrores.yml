@@ -1,0 +1,69 @@
+info:
+  name: TestErrores
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: http://localhost:8000/mcp
+  headers:
+    - name: Accept
+      value: application/json, text/event-stream
+    - name: Content-Type
+      value: application/json, text/event-stream
+    - name: mcp-session-id
+      value: af022bf71abf401fb021f64432aba2cc
+  body:
+    type: json
+    data: |-
+      {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+          "name": "get_time_info",
+          "args": {
+            "timezone": "INVALID_ZONE"
+          }
+        },
+        "id": 3
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Returns error for invalid timezone", function () {
+          const body = res.getBody();
+          
+          // Primero verifica qué estructura tiene la respuesta
+          console.log("Body completo:", JSON.stringify(body, null, 2));
+          
+          // FastMCP puede devolver el error de dos formas:
+          // 1. En result.structuredContent.error (tu caso exitoso con error controlado)
+          // 2. En body.error (error de JSON-RPC)
+          
+          if (body.result && body.result.structuredContent) {
+            // Caso 1: Error controlado en tu código
+            const data = body.result.structuredContent;
+            
+            expect(data.error).to.be.a("string");
+            expect(data.error.length).to.be.greaterThan(0);
+            expect(data.iso).to.equal("");
+            expect(data.unix_timestamp).to.equal(0);
+            expect(data.timezone).to.equal("");
+            expect(data.day_of_week).to.equal("");
+          } else if (body.error) {
+            // Caso 2: Error de JSON-RPC
+            expect(body.error).to.have.property("message");
+            expect(body.error.message).to.be.a("string");
+          } else {
+            throw new Error("Unexpected response structure: " + JSON.stringify(body));
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

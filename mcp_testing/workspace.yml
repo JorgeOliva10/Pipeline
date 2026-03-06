@@ -1,0 +1,14 @@
+opencollection: 1.0.0
+info:
+  name: "mcp_testing"
+  type: workspace
+
+collections:
+  - name: "mcp_weather"
+    path: "collections/mcp_weather"
+  - name: "FechaHora"
+    path: "collections/FechaHora"
+
+specs:
+
+docs: ''
