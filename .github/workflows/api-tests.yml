@@ -21,6 +21,7 @@ jobs:
         run: npm install -g @usebruno/cli
 
       - name: Ejecutar colección FechaHora
-        run: bru run ./mcp_testing/collections/FechaHora
+        run: bru run collections/FechaHora
+        working-directory: ./mcp_testing
 
    
