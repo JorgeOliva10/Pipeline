@@ -20,6 +20,21 @@ jobs:
       - name: Instalar Bruno CLI
         run: npm install -g @usebruno/cli
 
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias del servidor
+        run: pip install -r requirements.txt
+        working-directory: ./ai-mcp-datetime/mcp-time-docker-project
+
+      - name: Iniciar servidor MCP
+        run: |
+          cd ai-mcp-datetime/mcp-time-docker-project
+          python -m mcp.server &
+          sleep 5
+
       - name: Ejecutar colección FechaHora
         run: |
           cd mcp_testing/collections/FechaHora
